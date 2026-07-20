@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Log In / Register — Web Video Finder</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="index.html">Video<span>Finder</span></a>
+      <nav id="auth-nav"></nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <p id="auth-error" class="hidden"></p>
+    <div class="auth-panels">
+      <div class="auth-card">
+        <h2>Log In</h2>
+        <form id="login-form">
+          <label for="login-email">Email</label>
+          <input id="login-email" type="email" required />
+          <label for="login-password">Password</label>
+          <input id="login-password" type="password" required />
+          <button type="submit">Log In</button>
+        </form>
+      </div>
+
+      <div class="auth-card">
+        <h2>Register</h2>
+        <form id="register-form">
+          <label for="register-nickname">Nickname</label>
+          <input id="register-nickname" type="text" placeholder="Optional" />
+          <label for="register-email">Email</label>
+          <input id="register-email" type="email" required />
+          <label for="register-password">Password</label>
+          <input id="register-password" type="password" required minlength="8" />
+          <button type="submit">Create Account</button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/login.js"></script>
+</body>
+</html>

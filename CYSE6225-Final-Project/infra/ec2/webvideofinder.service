@@ -1,0 +1,15 @@
+[Unit]
+Description=Web Video Finder Flask backend (Gunicorn)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/webvideofinder/backend
+EnvironmentFile=/opt/webvideofinder/backend/.env
+ExecStart=/opt/webvideofinder/backend/venv/bin/gunicorn -w 3 -b 127.0.0.1:8000 wsgi:app
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
