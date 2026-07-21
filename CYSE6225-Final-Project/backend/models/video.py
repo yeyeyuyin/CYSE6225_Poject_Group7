@@ -4,7 +4,6 @@ Attributes: title, description, tags (SS/list), sources (list of {name,url}),
             thumbnail_url, click_count (N), rating_sum (N), rating_count (N)
 """
 import datetime
-from decimal import Decimal
 
 from config import Config
 from extensions import dynamodb
@@ -78,6 +77,8 @@ def with_avg_rating(video: dict) -> dict:
     count = int(video.get("rating_count", 0))
     total = int(video.get("rating_sum", 0))
     video["avg_rating"] = round(total / count, 2) if count else 0
-    # Decimal -> JSON-friendly types
+    # Normalize DynamoDB Decimals to plain ints for a clean API payload.
     video["click_count"] = int(video.get("click_count", 0))
+    video["rating_sum"] = total
+    video["rating_count"] = count
     return video

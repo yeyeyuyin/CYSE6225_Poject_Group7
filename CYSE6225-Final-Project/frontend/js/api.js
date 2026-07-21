@@ -2,7 +2,7 @@
 // Update API_BASE_URL to your Flask backend (EC2 public IP/domain, or
 // http://localhost:5000 for local dev against `flask run`).
 const API_BASE_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-  ? "http://localhost:5000/api"
+  ? "http://localhost:5001/api"
   : "/api"; // when served behind the same Nginx as the backend (see infra/ec2/nginx.conf)
 
 function getToken() {

@@ -37,4 +37,6 @@ def add_comment(video_id):
 @require_auth
 def like_comment(video_id, comment_id):
     new_likes = comment_model.like_comment(video_id, comment_id)
+    if new_likes is None:
+        return jsonify({"error": "Comment not found"}), 404
     return jsonify({"likes": new_likes})

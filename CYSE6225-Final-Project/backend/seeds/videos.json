@@ -1,0 +1,30 @@
+[
+  {
+    "title": "Big Buck Bunny",
+    "description": "A giant rabbit deals with three bullying rodents. Open-source animated short, great for testing embeds.",
+    "tags": ["Comedy"],
+    "sources": [
+      { "name": "Source A - YouTube", "url": "https://www.youtube.com/watch?v=YE7VzlLtp-4" }
+    ],
+    "thumbnail_url": "https://placehold.co/400x225?text=Big+Buck+Bunny"
+  },
+  {
+    "title": "Sintel",
+    "description": "A lone girl fights to save a baby dragon in this Blender Foundation short film.",
+    "tags": ["Drama", "Sci-Fi"],
+    "sources": [
+      { "name": "Source A - YouTube", "url": "https://www.youtube.com/watch?v=eRsGyueVLvQ" },
+      { "name": "Source B - Vimeo", "url": "https://vimeo.com/95322361" }
+    ],
+    "thumbnail_url": "https://placehold.co/400x225?text=Sintel"
+  },
+  {
+    "title": "Tears of Steel",
+    "description": "A group of warriors and scientists gather to stage a crucial event in a war against robots.",
+    "tags": ["Sci-Fi", "Action"],
+    "sources": [
+      { "name": "Source A - YouTube", "url": "https://www.youtube.com/watch?v=R6MlUcmOul8" }
+    ],
+    "thumbnail_url": "https://placehold.co/400x225?text=Tears+of+Steel"
+  }
+]

@@ -3,6 +3,8 @@ PK: video_id (S)   SK: comment_id (S)
 """
 import datetime
 
+from botocore.exceptions import ClientError
+
 from config import Config
 from extensions import dynamodb
 from utils.ids import new_id
@@ -36,10 +38,19 @@ def list_comments(video_id: str):
 
 
 def like_comment(video_id: str, comment_id: str):
-    resp = table.update_item(
-        Key={"video_id": video_id, "comment_id": comment_id},
-        UpdateExpression="SET likes = if_not_exists(likes, :zero) + :one",
-        ExpressionAttributeValues={":zero": 0, ":one": 1},
-        ReturnValues="UPDATED_NEW",
-    )
+    """Increment a comment's like count. Returns the new count, or None if the
+    comment doesn't exist (the ConditionExpression guards against creating a
+    phantom item for a bogus comment_id)."""
+    try:
+        resp = table.update_item(
+            Key={"video_id": video_id, "comment_id": comment_id},
+            UpdateExpression="SET likes = if_not_exists(likes, :zero) + :one",
+            ConditionExpression="attribute_exists(comment_id)",
+            ExpressionAttributeValues={":zero": 0, ":one": 1},
+            ReturnValues="UPDATED_NEW",
+        )
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
+            return None
+        raise
     return int(resp["Attributes"]["likes"])

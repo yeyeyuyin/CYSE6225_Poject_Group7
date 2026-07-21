@@ -1,57 +1,63 @@
-"""Seeds a few sample videos so the frontend has something to show while the
-team builds. Run after create_tables.py, from the backend/ dir with venv active:
+"""Seeds sample users and videos into DynamoDB from the JSON files in seeds/.
+
+Run AFTER create_tables.py, from the backend/ dir with the venv active:
 
     python3 scripts/seed_data.py
+
+Idempotent: re-running skips users/videos that already exist, so it's safe to
+run repeatedly. Test fixtures live in backend/seeds/*.json (version-controlled)
+so the team can edit them without touching code.
 """
-import sys
+import json
 import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from config import Config
+from models import user as user_model
 from models import video as video_model
 
-SAMPLE_VIDEOS = [
-    {
-        "title": "Big Buck Bunny",
-        "description": "A giant rabbit deals with three bullying rodents. Open-source animated short, great for testing embeds.",
-        "tags": ["Comedy"],
-        "sources": [
-            {"name": "Source A - YouTube", "url": "https://www.youtube.com/watch?v=YE7VzlLtp-4"},
-        ],
-        "thumbnail_url": "https://placehold.co/400x225?text=Big+Buck+Bunny",
-    },
-    {
-        "title": "Sintel",
-        "description": "A lone girl fights to save a baby dragon in this Blender Foundation short film.",
-        "tags": ["Drama", "Sci-Fi"],
-        "sources": [
-            {"name": "Source A - YouTube", "url": "https://www.youtube.com/watch?v=eRsGyueVLvQ"},
-            {"name": "Source B - Vimeo", "url": "https://vimeo.com/95322361"},
-        ],
-        "thumbnail_url": "https://placehold.co/400x225?text=Sintel",
-    },
-    {
-        "title": "Tears of Steel",
-        "description": "A group of warriors and scientists gather to stage a crucial event in a war against robots.",
-        "tags": ["Sci-Fi", "Action"],
-        "sources": [
-            {"name": "Source A - YouTube", "url": "https://www.youtube.com/watch?v=R6MlUcmOul8"},
-        ],
-        "thumbnail_url": "https://placehold.co/400x225?text=Tears+of+Steel",
-    },
-]
+SEEDS_DIR = os.path.join(os.path.dirname(__file__), "..", "seeds")
+
+
+def load_seed(filename):
+    with open(os.path.join(SEEDS_DIR, filename), encoding="utf-8") as f:
+        return json.load(f)
+
+
+def seed_users():
+    for u in load_seed("users.json"):
+        if user_model.get_user_by_email(u["email"]):
+            print(f"[skip]   user {u['email']} already exists")
+            continue
+        created = user_model.create_user(u["email"], u["password"], u.get("nickname", ""))
+        # NOTE: create_user hashes the password, so these accounts can actually log in.
+        print(f"[create] user {created['email']} ({created['user_id']})")
+
+
+def seed_videos():
+    existing_titles = {v.get("title") for v in video_model.list_videos()}
+    for v in load_seed("videos.json"):
+        if v["title"] in existing_titles:
+            print(f"[skip]   video {v['title']!r} already exists")
+            continue
+        created = video_model.create_video(
+            title=v["title"],
+            description=v.get("description", ""),
+            tags=v.get("tags", []),
+            sources=v.get("sources", []),
+            thumbnail_url=v.get("thumbnail_url", ""),
+        )
+        print(f"[create] video {created['title']!r} ({created['video_id']})")
 
 
 def main():
-    for v in SAMPLE_VIDEOS:
-        created = video_model.create_video(
-            title=v["title"],
-            description=v["description"],
-            tags=v["tags"],
-            sources=v["sources"],
-            thumbnail_url=v["thumbnail_url"],
-        )
-        print(f"Created: {created['title']} ({created['video_id']})")
+    print(f"Seeding into table prefix {Config.TABLE_PREFIX!r} "
+          f"(endpoint: {Config.DYNAMODB_ENDPOINT_URL or 'real AWS'})\n")
+    seed_users()
+    seed_videos()
+    print("\nDone.")
 
 
 if __name__ == "__main__":

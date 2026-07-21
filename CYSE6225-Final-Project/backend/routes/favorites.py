@@ -11,8 +11,11 @@ favorites_bp = Blueprint("favorites", __name__)
 @require_auth
 def list_favorites():
     favs = favorite_model.list_favorites(g.user_id)
-    video_ids = [f["video_id"] for f in favs]
-    videos = [video_model.with_avg_rating(video_model.get_video(vid)) for vid in video_ids if video_model.get_video(vid)]
+    videos = []
+    for f in favs:
+        v = video_model.get_video(f["video_id"])  # fetch once per favorite
+        if v:
+            videos.append(video_model.with_avg_rating(v))
     return jsonify(videos)
 
 

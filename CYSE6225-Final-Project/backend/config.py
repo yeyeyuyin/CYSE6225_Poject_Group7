@@ -5,6 +5,7 @@ load_dotenv()
 
 
 class Config:
+    PORT = int(os.getenv("PORT", "5001"))  # 5000 is taken by macOS AirPlay Receiver; api.js matches this
     AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
     TABLE_PREFIX = os.getenv("TABLE_PREFIX", "dev_")
     DYNAMODB_ENDPOINT_URL = os.getenv("DYNAMODB_ENDPOINT_URL")  # None -> real AWS
