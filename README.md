@@ -17,10 +17,10 @@ and lets users search, filter, sort, rate, comment on, and bookmark titles.
 ## Architecture (EC2-based deployment)
 
 ```
- Browser (frontend/) ──HTTPS──▶ Nginx (EC2, port 443/80)
+ Browser (CYSE6225-Final-Project/frontend/) ──HTTPS──▶ Nginx (EC2, port 443/80)
                                    │  reverse proxy
                                    ▼
-                              Gunicorn ──▶ Flask app (backend/)
+                              Gunicorn ──▶ Flask app (CYSE6225-Final-Project/backend/)
                                    │
                                    ▼
                               boto3 ──▶ Amazon DynamoDB
@@ -28,8 +28,8 @@ and lets users search, filter, sort, rate, comment on, and bookmark titles.
 
 * Frontend static files can be served directly by Nginx from the same EC2
   instance, or hosted separately on S3 + CloudFront — either works with this
-  scaffold, since `frontend/js/api.js` only needs `API_BASE_URL` pointed at
-  wherever the Flask API lives.
+  scaffold, since `CYSE6225-Final-Project/frontend/js/api.js` only needs
+  `API_BASE_URL` pointed at wherever the Flask API lives.
 * The Flask app talks to DynamoDB using `boto3`. On EC2, give the instance an
   **IAM role** with DynamoDB read/write permissions instead of hardcoding
   AWS keys.
@@ -37,11 +37,13 @@ and lets users search, filter, sort, rate, comment on, and bookmark titles.
 ## Repository Layout
 
 ```
-backend/            Flask API (blueprints per feature, DynamoDB models)
-frontend/           Static HTML/CSS/JS client
-infra/dynamodb/     Script to create all DynamoDB tables
-infra/ec2/          EC2 bootstrap script, systemd unit, Nginx config
-docs/               Architecture / API notes
+requirements.txt                  Python dependencies shared by local/dev deploys
+CYSE6225-Final-Project/
+  backend/                        Flask API (blueprints per feature, DynamoDB models)
+  frontend/                       Static HTML/CSS/JS client
+  infra/dynamodb/                 Script to create all DynamoDB tables
+  infra/ec2/                      EC2 bootstrap script, systemd unit, Nginx config
+  docs/                           Architecture / API notes
 ```
 
 ## Getting Started (local development)
@@ -49,22 +51,22 @@ docs/               Architecture / API notes
 ### 1. Backend
 
 ```bash
-cd backend
-python3 -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
+python3 -m venv .venv
+source .venv/bin/activate       # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp ../.env.example .env         # fill in values (see below)
-flask --app app run --debug     # http://localhost:5000
+cd CYSE6225-Final-Project/backend
+cp .env.example .env            # fill in values (see below)
+flask --app app run --debug     # http://localhost:5001
 ```
 
 ### 2. Create the DynamoDB tables
 
 Requires AWS credentials configured locally (`aws configure`) with permission
 to create DynamoDB tables, or run against a local DynamoDB (see
-`infra/dynamodb/create_tables.py` --endpoint flag).
+`CYSE6225-Final-Project/infra/dynamodb/create_tables.py` --endpoint flag).
 
 ```bash
-cd infra/dynamodb
+cd CYSE6225-Final-Project/infra/dynamodb
 python3 create_tables.py --region us-east-1
 ```
 
@@ -73,14 +75,14 @@ python3 create_tables.py --region us-east-1
 The frontend is static — no build step. Just point it at your backend:
 
 ```bash
-# edit frontend/js/api.js -> API_BASE_URL
-cd frontend
+# edit CYSE6225-Final-Project/frontend/js/api.js -> API_BASE_URL
+cd CYSE6225-Final-Project/frontend
 python3 -m http.server 8080     # http://localhost:8080
 ```
 
 ## Environment Variables
 
-See `.env.example`. Key variables:
+See `CYSE6225-Final-Project/backend/.env.example`. Key variables:
 
 | Variable         | Description                                   |
 |------------------|------------------------------------------------|
@@ -93,16 +95,18 @@ See `.env.example`. Key variables:
 
 1. Launch an EC2 instance (Amazon Linux 2023 or Ubuntu 22.04), attach an IAM
    role with DynamoDB access.
-2. SSH in, clone this repo, then run `infra/ec2/setup.sh` (installs Python,
-   creates venv, installs deps, installs Nginx, registers the systemd
-   service).
-3. Copy `infra/ec2/webvideofinder.service` to `/etc/systemd/system/` and
-   `infra/ec2/nginx.conf` to `/etc/nginx/sites-available/`, then
+2. SSH in, clone this repo to `/opt/webvideofinder`, then run
+   `/opt/webvideofinder/CYSE6225-Final-Project/infra/ec2/setup.sh` (installs
+   Python, creates venv, installs deps from the root `requirements.txt`,
+   installs Nginx, registers the systemd service).
+3. Copy `CYSE6225-Final-Project/infra/ec2/webvideofinder.service` to
+   `/etc/systemd/system/` and `CYSE6225-Final-Project/infra/ec2/nginx.conf` to
+   `/etc/nginx/sites-available/`, then
    `systemctl enable --now webvideofinder`.
 4. Open ports 80/443 (and optionally restrict 22 to your IP) in the
    instance's Security Group.
 
-Full step-by-step notes: `infra/ec2/README.md`.
+Full step-by-step notes: `CYSE6225-Final-Project/infra/ec2/README.md`.
 
 ## Feature Map (matches the project spec / sprint tickets)
 
