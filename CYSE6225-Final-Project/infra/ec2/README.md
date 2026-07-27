@@ -9,18 +9,19 @@
    ```bash
    sudo git clone <your-repo-url> /opt/webvideofinder
    ```
-4. **Configure environment**: copy `.env.example` to
-   `/opt/webvideofinder/backend/.env` and fill in `JWT_SECRET`, `AWS_REGION`,
-   `TABLE_PREFIX`, etc. Since the instance has an IAM role, you do **not**
-   need to put AWS access keys in `.env` — boto3 picks up the role
-   automatically.
+4. **Configure environment**: copy
+   `/opt/webvideofinder/CYSE6225-Final-Project/backend/.env.example` to
+   `/opt/webvideofinder/CYSE6225-Final-Project/backend/.env` and fill in
+   `JWT_SECRET`, `AWS_REGION`, `TABLE_PREFIX`, etc. Since the instance has an
+   IAM role, you do **not** need to put AWS access keys in `.env` — boto3
+   picks up the role automatically.
 5. **Create the DynamoDB tables** (from your local machine or the instance):
    ```bash
-   python3 infra/dynamodb/create_tables.py --region us-east-1 --prefix dev_
+   python3 /opt/webvideofinder/CYSE6225-Final-Project/infra/dynamodb/create_tables.py --region us-east-1 --prefix dev_
    ```
 6. **Run the bootstrap script**:
    ```bash
-   cd /opt/webvideofinder/infra/ec2
+   cd /opt/webvideofinder/CYSE6225-Final-Project/infra/ec2
    sudo bash setup.sh
    ```
 7. **Verify**:
