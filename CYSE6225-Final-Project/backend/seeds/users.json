@@ -1,5 +1,6 @@
 [
   { "email": "alice@example.com", "password": "password123", "nickname": "Alice" },
   { "email": "bob@example.com",   "password": "password123", "nickname": "Bob" },
-  { "email": "test@example.com",  "password": "test1234",    "nickname": "Tester" }
+  { "email": "test@example.com",  "password": "test1234",    "nickname": "Tester" },
+  { "email": "admin@example.com", "password": "admin1234",   "nickname": "Admin", "role": "admin" }
 ]

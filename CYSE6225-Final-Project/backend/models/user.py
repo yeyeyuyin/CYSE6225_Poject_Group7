@@ -13,7 +13,7 @@ from utils.ids import new_id
 table = dynamodb.Table(Config.TABLE_USERS)
 
 
-def create_user(email: str, password: str, nickname: str) -> dict:
+def create_user(email: str, password: str, nickname: str, role: str = "user") -> dict:
     user_id = new_id()
     item = {
         "user_id": user_id,
@@ -21,6 +21,7 @@ def create_user(email: str, password: str, nickname: str) -> dict:
         "password_hash": generate_password_hash(password),
         "nickname": nickname or email.split("@")[0],
         "avatar_url": "",
+        "role": role,  # "user" | "admin"
         "created_at": datetime.datetime.utcnow().isoformat(),
     }
     table.put_item(Item=item, ConditionExpression="attribute_not_exists(user_id)")
@@ -85,4 +86,5 @@ def public_user(user: dict) -> dict:
         "email": user["email"],
         "nickname": user.get("nickname", ""),
         "avatar_url": user.get("avatar_url", ""),
+        "role": user.get("role", "user"),
     }
