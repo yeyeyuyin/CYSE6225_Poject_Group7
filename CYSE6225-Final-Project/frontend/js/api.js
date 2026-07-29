@@ -132,4 +132,15 @@ const Api = {
   // Reports
   reportBrokenLink: (videoId, source_name, note) =>
     apiRequest(`/videos/${videoId}/report`, { method: "POST", auth: true, body: { source_name, note } }),
+
+  // Admin: video catalog management (backend enforces require_admin)
+  adminCreateVideo: (payload) => apiRequest("/videos", { method: "POST", auth: true, body: payload }),
+  adminUpdateVideo: (videoId, payload) => apiRequest(`/videos/${videoId}`, { method: "PUT", auth: true, body: payload }),
+  adminDeleteVideo: (videoId) => apiRequest(`/videos/${videoId}`, { method: "DELETE", auth: true }),
+
+  // Admin: broken-link reports
+  adminListReports: () => apiRequest("/videos/reports", { auth: true }),
+  adminUpdateReportStatus: (reportId, status) =>
+    apiRequest(`/videos/reports/${reportId}`, { method: "PUT", auth: true, body: { status } }),
+  adminDeleteReport: (reportId) => apiRequest(`/videos/reports/${reportId}`, { method: "DELETE", auth: true }),
 };

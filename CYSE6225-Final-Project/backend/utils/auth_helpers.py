@@ -6,6 +6,7 @@ import jwt
 from flask import request, jsonify, g
 
 from config import Config
+from models import user as user_model
 
 
 def generate_token(user_id: str, email: str) -> str:
@@ -43,6 +44,23 @@ def require_auth(fn):
 
         g.user_id = payload["sub"]
         g.user_email = payload["email"]
+        return fn(*args, **kwargs)
+
+    return wrapper
+
+
+def require_admin(fn):
+    """Like require_auth, but also requires the user's role to be 'admin'.
+    Looks the role up fresh from the DB (rather than trusting a JWT claim) so
+    revoking admin access takes effect immediately, without waiting for the
+    token to expire."""
+
+    @functools.wraps(fn)
+    @require_auth
+    def wrapper(*args, **kwargs):
+        user = user_model.get_user_by_id(g.user_id)
+        if not user or user.get("role") != "admin":
+            return jsonify({"error": "Admin access required"}), 403
         return fn(*args, **kwargs)
 
     return wrapper

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Web Video Finder</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="index.html">Video<span>Finder</span></a>
+      <nav id="auth-nav"></nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>Admin Dashboard</h1>
+    <p id="admin-denied" class="error hidden">You don't have access to this page.</p>
+
+    <div id="admin-content" class="hidden">
+      <div class="profile-card">
+        <h2 id="video-form-title">Add New Video</h2>
+        <form id="video-form">
+          <input type="hidden" id="video-id-input" />
+
+          <label for="title-input">Title</label>
+          <input id="title-input" type="text" required />
+
+          <label for="description-input">Description</label>
+          <textarea id="description-input" rows="3"></textarea>
+
+          <label>Tags</label>
+          <div id="tags-checkboxes" class="tag-checkboxes"></div>
+
+          <label for="thumbnail-input">Thumbnail URL <span class="muted">(optional — auto-detected from a YouTube source if left blank)</span></label>
+          <input id="thumbnail-input" type="text" placeholder="https://..." />
+
+          <label>Sources</label>
+          <div id="sources-list"></div>
+          <button type="button" id="add-source-btn" class="secondary">+ Add Source</button>
+
+          <div class="form-actions">
+            <button type="submit" id="video-form-submit">Create Video</button>
+            <button type="button" id="video-form-cancel" class="secondary hidden">Cancel Edit</button>
+          </div>
+          <p id="video-form-message" class="muted"></p>
+        </form>
+      </div>
+
+      <div class="profile-card">
+        <h2>Manage Videos</h2>
+        <p class="muted">Click a row to see its broken-link reports below.</p>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Title</th>
+              <th>Tags</th>
+              <th>⭐</th>
+              <th>▶</th>
+              <th>Reports</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="admin-video-rows"></tbody>
+        </table>
+        <p id="admin-video-message" class="muted"></p>
+      </div>
+
+      <div class="profile-card">
+        <h2 id="reports-heading">Broken Link Reports</h2>
+        <p id="reports-hint" class="muted">Select a video above to see its reports.</p>
+        <table class="admin-table hidden" id="reports-table">
+          <thead>
+            <tr>
+              <th>Source</th>
+              <th>Note</th>
+              <th>Reported By</th>
+              <th>When</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="reports-rows"></tbody>
+        </table>
+        <p id="reports-message" class="muted"></p>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

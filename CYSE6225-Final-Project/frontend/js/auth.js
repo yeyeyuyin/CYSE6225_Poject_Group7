@@ -10,6 +10,7 @@ function renderAuthNav() {
     nav.innerHTML = `
       <img class="nav-avatar" src="${avatarSrc}" alt="" />
       <span class="nav-user">Hi, ${user.nickname}</span>
+      ${user.role === "admin" ? `<a href="admin.html">Admin</a>` : ""}
       <a href="profile.html">Profile</a>
       <a href="#" id="logout-link">Log out</a>
     `;

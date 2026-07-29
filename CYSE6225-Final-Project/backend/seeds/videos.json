@@ -6,7 +6,7 @@
     "sources": [
       { "name": "Source A - YouTube", "url": "https://www.youtube.com/watch?v=YE7VzlLtp-4" }
     ],
-    "thumbnail_url": "https://placehold.co/400x225?text=Big+Buck+Bunny"
+    "thumbnail_url": ""
   },
   {
     "title": "Sintel",
@@ -16,7 +16,7 @@
       { "name": "Source A - YouTube", "url": "https://www.youtube.com/watch?v=eRsGyueVLvQ" },
       { "name": "Source B - Vimeo", "url": "https://vimeo.com/95322361" }
     ],
-    "thumbnail_url": "https://placehold.co/400x225?text=Sintel"
+    "thumbnail_url": ""
   },
   {
     "title": "Tears of Steel",
@@ -25,6 +25,60 @@
     "sources": [
       { "name": "Source A - YouTube", "url": "https://www.youtube.com/watch?v=R6MlUcmOul8" }
     ],
-    "thumbnail_url": "https://placehold.co/400x225?text=Tears+of+Steel"
+    "thumbnail_url": ""
+  },
+  {
+    "title": "Spring",
+    "description": "A shepherd girl and her dog face ancient spirits to keep the cycle of life going, in this Blender Studio fantasy short.",
+    "tags": ["Drama"],
+    "sources": [
+      { "name": "Source A - YouTube", "url": "https://www.youtube.com/watch?v=WhWc3b3KhnY" }
+    ],
+    "thumbnail_url": ""
+  },
+  {
+    "title": "Cosmos Laundromat: First Cycle",
+    "description": "A suicidal sheep named Franck is offered a chance to live all the lives he ever wanted, in this absurdist sci-fi Blender Foundation short.",
+    "tags": ["Sci-Fi", "Comedy"],
+    "sources": [
+      { "name": "Source A - YouTube", "url": "https://www.youtube.com/watch?v=Y-rmzh0PI3c" }
+    ],
+    "thumbnail_url": ""
+  },
+  {
+    "title": "Sherlock Jr.",
+    "description": "A film projectionist dreams himself into the movie he's screening to solve a mystery and win back his girl, in Buster Keaton's 1924 silent classic.",
+    "tags": ["Comedy", "Mystery"],
+    "sources": [
+      { "name": "Source A - YouTube", "url": "https://www.youtube.com/watch?v=PT2IQfU1-3g" }
+    ],
+    "thumbnail_url": ""
+  },
+  {
+    "title": "The General",
+    "description": "A train engineer chases his stolen locomotive behind enemy lines to save it — and the woman he loves — in Buster Keaton's 1926 action-comedy.",
+    "tags": ["Action", "Comedy"],
+    "sources": [
+      { "name": "Source A - YouTube", "url": "https://www.youtube.com/watch?v=_bjxVL6XTUg" }
+    ],
+    "thumbnail_url": ""
+  },
+  {
+    "title": "Nosferatu",
+    "description": "A mysterious count draws a young clerk into his shadowy world in F.W. Murnau's 1922 German Expressionist horror classic.",
+    "tags": ["Horror", "Mystery"],
+    "sources": [
+      { "name": "Source A - YouTube", "url": "https://www.youtube.com/watch?v=ug-PJAGV_2Q" }
+    ],
+    "thumbnail_url": ""
+  },
+  {
+    "title": "Night of the Living Dead",
+    "description": "Strangers holed up in a rural farmhouse battle relentless attacks from the reanimated dead, in George Romero's genre-defining 1968 horror film.",
+    "tags": ["Horror"],
+    "sources": [
+      { "name": "Source A - YouTube", "url": "https://www.youtube.com/watch?v=rJ8DsFLWlbM" }
+    ],
+    "thumbnail_url": ""
   }
 ]
