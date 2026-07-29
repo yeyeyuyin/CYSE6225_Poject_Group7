@@ -59,12 +59,14 @@ def update_profile(user_id: str, nickname: str = None, avatar_url: str = None):
     if not updates:
         return get_user_by_id(user_id)
 
-    table.update_item(
-        Key={"user_id": user_id},
-        UpdateExpression="SET " + ", ".join(updates),
-        ExpressionAttributeNames=names or None,
-        ExpressionAttributeValues=values,
-    )
+    kwargs = {
+        "Key": {"user_id": user_id},
+        "UpdateExpression": "SET " + ", ".join(updates),
+        "ExpressionAttributeValues": values,
+    }
+    if names:
+        kwargs["ExpressionAttributeNames"] = names
+    table.update_item(**kwargs)
     return get_user_by_id(user_id)
 
 

@@ -6,7 +6,9 @@ function renderAuthNav() {
   const user = getStoredUser();
 
   if (user) {
+    const avatarSrc = user.avatar_url || "https://placehold.co/64x64?text=%20";
     nav.innerHTML = `
+      <img class="nav-avatar" src="${avatarSrc}" alt="" />
       <span class="nav-user">Hi, ${user.nickname}</span>
       <a href="profile.html">Profile</a>
       <a href="#" id="logout-link">Log out</a>

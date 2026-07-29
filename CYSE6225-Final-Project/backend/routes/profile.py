@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, g
 
 from models import user as user_model
+from utils import avatar_storage
 from utils.auth_helpers import require_auth
 from utils.validators import is_valid_password
 
@@ -23,6 +24,19 @@ def update_me():
     nickname = data.get("nickname")
     avatar_url = data.get("avatar_url")
     updated = user_model.update_profile(g.user_id, nickname=nickname, avatar_url=avatar_url)
+    return jsonify(user_model.public_user(updated))
+
+
+@profile_bp.post("/me/avatar")
+@require_auth
+def upload_avatar():
+    file = request.files.get("avatar")
+    error = avatar_storage.validate_avatar(file)
+    if error:
+        return jsonify({"error": error}), 400
+
+    avatar_url = avatar_storage.save_avatar(g.user_id, file)
+    updated = user_model.update_profile(g.user_id, avatar_url=avatar_url)
     return jsonify(user_model.public_user(updated))
 
 

@@ -41,6 +41,7 @@ header.site-header {
 #auth-nav a { color: var(--muted); }
 #auth-nav a:hover { color: var(--text); }
 .nav-user { color: var(--text); }
+.nav-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--surface-2); }
 
 main { padding: 24px 0 60px; }
 
@@ -206,6 +207,9 @@ button.secondary { background: var(--surface-2); color: var(--text); border: 1px
   border-radius: var(--radius);
 }
 .profile-card button { margin-top: 14px; }
+.avatar-row { display: flex; align-items: center; gap: 16px; }
+.avatar-preview { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; background: var(--surface-2); border: 1px solid var(--border); }
+.profile-card input[type="file"] { width: auto; background: none; border: none; padding: 6px 0; color: var(--muted); }
 
 .video-row {
   display: flex;
