@@ -1,0 +1,106 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  S3 bucket + CloudFront distribution for user avatars. The bucket blocks
+  all public access; only CloudFront (via Origin Access Control) can read
+  from it. The backend writes directly to this bucket -- see
+  backend/utils/avatar_storage.py. Deploy once per environment.
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: dev
+
+Resources:
+  AvatarBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "webvideofinder-avatars-${EnvironmentName}-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-avatars"
+
+  AvatarOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "${EnvironmentName}-avatar-oac"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # Managed cache policies (e.g. CachingOptimized) ignore query strings, but
+  # avatar URLs use a `?v=` param for cache-busting on re-upload -- so this
+  # needs a custom policy that forwards query strings into the cache key.
+  AvatarCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub "${EnvironmentName}-avatar-cache-policy"
+        DefaultTTL: 86400
+        MaxTTL: 31536000
+        MinTTL: 0
+        ParametersInCacheKeyAndForwardedToOrigin:
+          EnableAcceptEncodingGzip: true
+          EnableAcceptEncodingBrotli: true
+          QueryStringsConfig:
+            QueryStringBehavior: all
+          HeadersConfig:
+            HeaderBehavior: none
+          CookiesConfig:
+            CookieBehavior: none
+
+  AvatarDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub "${EnvironmentName} avatar CDN"
+        DefaultCacheBehavior:
+          TargetOriginId: avatar-s3-origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId: !Ref AvatarCachePolicy
+          AllowedMethods: [GET, HEAD]
+        Origins:
+          - Id: avatar-s3-origin
+            DomainName: !GetAtt AvatarBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt AvatarOAC.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+
+  AvatarBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AvatarBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipal
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "${AvatarBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${AvatarDistribution}"
+
+Outputs:
+  BucketName:
+    Value: !Ref AvatarBucket
+    Export:
+      Name: !Sub "${EnvironmentName}-AvatarBucketName"
+
+  BucketArn:
+    Value: !GetAtt AvatarBucket.Arn
+    Export:
+      Name: !Sub "${EnvironmentName}-AvatarBucketArn"
+
+  DistributionDomainName:
+    Value: !GetAtt AvatarDistribution.DomainName
+    Export:
+      Name: !Sub "${EnvironmentName}-AvatarCdnDomain"

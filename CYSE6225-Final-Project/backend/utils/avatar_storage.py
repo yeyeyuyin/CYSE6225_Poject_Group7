@@ -1,14 +1,21 @@
-"""Avatar file storage.
+"""Avatar file storage — S3-backed, served through CloudFront.
 
-Local-disk implementation for dev. To move to S3 for deployment, change only
-save_avatar()'s body (upload via boto3 upload_fileobj, return the S3/CloudFront
-URL) -- routes and the DB only ever handle a URL string, never a file path.
+Instances behind an ALB/ASG are ephemeral and don't share local disk, so
+avatars can't live on the instance filesystem: an upload landing on one
+instance would be invisible to users routed to another, and would vanish
+entirely on the next Instance Refresh. S3 is the shared, durable store;
+CloudFront (with Origin Access Control) is what the browser actually loads
+the image from -- the bucket itself is not publicly readable.
 """
-import os
+import time
+
+import boto3
 
 from config import Config
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
+
+_s3 = boto3.client("s3", region_name=Config.AWS_REGION)
 
 
 def _extension(filename: str) -> str:
@@ -18,7 +25,7 @@ def _extension(filename: str) -> str:
 def _file_size(file_storage) -> int:
     stream = file_storage.stream
     pos = stream.tell()
-    stream.seek(0, os.SEEK_END)
+    stream.seek(0, 2)  # SEEK_END
     size = stream.tell()
     stream.seek(pos)
     return size
@@ -36,16 +43,21 @@ def validate_avatar(file_storage) -> str | None:
 
 
 def save_avatar(user_id: str, file_storage) -> str:
-    """Save the uploaded file, overwriting any previous avatar for this user,
-    and return the public URL the frontend should use to display it."""
-    os.makedirs(Config.UPLOAD_DIR, exist_ok=True)
-
+    """Upload to S3, overwriting any previous avatar for this user, and
+    return the CloudFront URL the frontend should use to display it."""
     ext = _extension(file_storage.filename)
-    filename = f"{user_id}.{ext}"
-    file_storage.save(os.path.join(Config.UPLOAD_DIR, filename))
+    key = f"avatars/{user_id}.{ext}"
+    content_type = file_storage.mimetype or f"image/{'jpeg' if ext == 'jpg' else ext}"
 
-    # Cache-bust: same filename gets overwritten on every re-upload, so
-    # without a changing query param the browser would keep showing the old
-    # cached image.
-    version = int(os.path.getmtime(os.path.join(Config.UPLOAD_DIR, filename)))
-    return f"/api/uploads/avatars/{filename}?v={version}"
+    _s3.upload_fileobj(
+        file_storage,
+        Config.AVATAR_BUCKET,
+        key,
+        ExtraArgs={"ContentType": content_type},
+    )
+
+    # Cache-bust: same key gets overwritten on every re-upload, so without a
+    # changing query param CloudFront/the browser would keep serving the
+    # cached previous image.
+    version = int(time.time())
+    return f"{Config.AVATAR_CDN_BASE_URL}/{key}?v={version}"

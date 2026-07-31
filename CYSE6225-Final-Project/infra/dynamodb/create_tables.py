@@ -4,6 +4,11 @@ Usage:
     python3 create_tables.py --region us-east-1 --prefix dev_
     python3 create_tables.py --endpoint http://localhost:8000   # local DynamoDB
 
+Tables are on-demand (PAY_PER_REQUEST): no capacity to provision or tune, and
+idle tables cost nothing beyond the storage of the data already in them --
+important for an environment that gets torn down and rebuilt between test
+sessions.
+
 Safe to re-run: skips any table that already exists.
 """
 import argparse
@@ -27,16 +32,13 @@ def table_spec(prefix: str):
                     "IndexName": "email-index",
                     "KeySchema": [{"AttributeName": "email", "KeyType": "HASH"}],
                     "Projection": {"ProjectionType": "ALL"},
-                    "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
                 }
             ],
-            "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
         },
         {
             "TableName": f"{prefix}Videos",
             "KeySchema": [{"AttributeName": "video_id", "KeyType": "HASH"}],
             "AttributeDefinitions": [{"AttributeName": "video_id", "AttributeType": "S"}],
-            "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
         },
         {
             "TableName": f"{prefix}Ratings",
@@ -48,7 +50,6 @@ def table_spec(prefix: str):
                 {"AttributeName": "video_id", "AttributeType": "S"},
                 {"AttributeName": "user_id", "AttributeType": "S"},
             ],
-            "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
         },
         {
             "TableName": f"{prefix}Comments",
@@ -60,7 +61,6 @@ def table_spec(prefix: str):
                 {"AttributeName": "video_id", "AttributeType": "S"},
                 {"AttributeName": "comment_id", "AttributeType": "S"},
             ],
-            "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
         },
         {
             "TableName": f"{prefix}Favorites",
@@ -72,7 +72,6 @@ def table_spec(prefix: str):
                 {"AttributeName": "user_id", "AttributeType": "S"},
                 {"AttributeName": "video_id", "AttributeType": "S"},
             ],
-            "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
         },
         {
             "TableName": f"{prefix}History",
@@ -84,13 +83,11 @@ def table_spec(prefix: str):
                 {"AttributeName": "user_id", "AttributeType": "S"},
                 {"AttributeName": "sort_key", "AttributeType": "S"},
             ],
-            "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
         },
         {
             "TableName": f"{prefix}Reports",
             "KeySchema": [{"AttributeName": "report_id", "KeyType": "HASH"}],
             "AttributeDefinitions": [{"AttributeName": "report_id", "AttributeType": "S"}],
-            "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
         },
     ]
 
@@ -115,7 +112,7 @@ def main():
             print(f"[skip] {name} already exists")
             continue
         try:
-            client.create_table(BillingMode="PROVISIONED", **spec)
+            client.create_table(BillingMode="PAY_PER_REQUEST", **spec)
             print(f"[create] {name} ...")
         except ClientError as e:
             print(f"[error] {name}: {e}", file=sys.stderr)
