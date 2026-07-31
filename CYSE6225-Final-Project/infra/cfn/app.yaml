@@ -1,0 +1,214 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Compute tier for Web Video Finder: IAM role, Launch Template (launches
+  from a custom "golden" AMI -- see infra/ec2/build-ami.sh -- with a short
+  boot-time UserData that just injects config and starts the already-baked
+  services), Application Load Balancer (public subnets), and an Auto
+  Scaling Group (private subnets) from the Network stack. Deploy Network
+  and Data stacks first; this stack imports their outputs.
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: dev
+
+  JWTSecret:
+    Type: String
+    NoEcho: true
+    Description: Shared JWT signing secret -- every instance must get the same value.
+
+  TablePrefix:
+    Type: String
+    Default: dev_
+
+  InstanceType:
+    Type: String
+    Default: t3.micro
+
+  MinSize:
+    Type: Number
+    Default: 1
+  MaxSize:
+    Type: Number
+    Default: 3
+  DesiredCapacity:
+    Type: Number
+    Default: 2
+    Description: 2 so the ASG actually spans both AZs from the start, not just on scale-out.
+
+  AmiId:
+    Type: AWS::EC2::Image::Id
+    Description: >
+      Custom AMI built by infra/ec2/build-ami.sh (app code, venv, systemd
+      unit, and nginx config already baked in). Not a stock Ubuntu AMI --
+      re-run build-ami.sh and pass the new image ID here after any code
+      change you want the ASG to pick up.
+
+Resources:
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${EnvironmentName}-webvideofinder-ec2-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      # Instances are in a private subnet with no inbound route from the
+      # internet, so plain SSH can't reach them without a bastion. SSM
+      # Session Manager works over an outbound connection instead (through
+      # the NAT, or add an SSM VPC endpoint to avoid that too), so it's the
+      # practical way to get a shell for debugging.
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource:
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TablePrefix}*"
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TablePrefix}*/index/*"
+        - PolicyName: AvatarBucketAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                Resource:
+                  - !Sub
+                    - "${BucketArn}/avatars/*"
+                    - BucketArn: !ImportValue
+                        Fn::Sub: "${EnvironmentName}-AvatarBucketArn"
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EC2Role
+
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub "${EnvironmentName}-webvideofinder-lt"
+      LaunchTemplateData:
+        ImageId: !Ref AmiId
+        InstanceType: !Ref InstanceType
+        IamInstanceProfile:
+          Arn: !GetAtt EC2InstanceProfile.Arn
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub "${EnvironmentName}-AppSecurityGroupId"
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: !Sub "${EnvironmentName}-webvideofinder"
+              - Key: Environment
+                Value: !Ref EnvironmentName
+        UserData:
+          Fn::Base64:
+            Fn::Sub:
+              - |
+                #!/bin/bash
+                # Everything (packages, code, venv, systemd unit, nginx
+                # config) is already baked into the AMI -- see
+                # infra/ec2/build-provision.sh. This just injects the
+                # environment-specific config and starts what's already
+                # installed; see infra/ec2/boot.sh for the actual logic.
+                set -euo pipefail
+                export JWT_SECRET="${JWTSecret}"
+                export TABLE_PREFIX="${TablePrefix}"
+                export AVATAR_BUCKET="${AvatarBucketName}"
+                export AVATAR_CDN_BASE_URL="https://${AvatarCdnDomain}"
+                export AWS_REGION="${AWS::Region}"
+                bash /opt/webvideofinder/CYSE6225-Final-Project/infra/ec2/boot.sh
+              - AvatarBucketName:
+                  Fn::ImportValue: !Sub "${EnvironmentName}-AvatarBucketName"
+                AvatarCdnDomain:
+                  Fn::ImportValue: !Sub "${EnvironmentName}-AvatarCdnDomain"
+
+  ALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub "${EnvironmentName}-webvideofinder-alb"
+      Scheme: internet-facing
+      Type: application
+      Subnets:
+        - Fn::ImportValue: !Sub "${EnvironmentName}-PublicSubnet1Id"
+        - Fn::ImportValue: !Sub "${EnvironmentName}-PublicSubnet2Id"
+      SecurityGroups:
+        - Fn::ImportValue: !Sub "${EnvironmentName}-AlbSecurityGroupId"
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${EnvironmentName}-webvideofinder-tg"
+      Port: 80
+      Protocol: HTTP
+      TargetType: instance
+      VpcId:
+        Fn::ImportValue: !Sub "${EnvironmentName}-VpcId"
+      HealthCheckPath: /api/health
+      HealthCheckIntervalSeconds: 30
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ALB
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    # Without this, changing AmiId and redeploying only updates the Launch
+    # Template -- existing instances keep running the old AMI until they
+    # happen to be replaced some other way. This makes a stack update
+    # actually roll new instances out (one at a time, waiting for the ALB
+    # to consider each one healthy before moving to the next).
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: 1
+        MaxBatchSize: 1
+        WaitOnResourceSignals: false
+        PauseTime: PT2M
+    Properties:
+      AutoScalingGroupName: !Sub "${EnvironmentName}-webvideofinder-asg"
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      MinSize: !Ref MinSize
+      MaxSize: !Ref MaxSize
+      DesiredCapacity: !Ref DesiredCapacity
+      VPCZoneIdentifier:
+        - Fn::ImportValue: !Sub "${EnvironmentName}-PrivateSubnet1Id"
+        - Fn::ImportValue: !Sub "${EnvironmentName}-PrivateSubnet2Id"
+      TargetGroupARNs:
+        - !Ref TargetGroup
+      HealthCheckType: ELB
+      HealthCheckGracePeriod: 120
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-webvideofinder"
+          PropagateAtLaunch: true
+
+Outputs:
+  LoadBalancerDNS:
+    Description: Point your browser (or a Route53 record, for the bonus) here.
+    Value: !GetAtt ALB.DNSName

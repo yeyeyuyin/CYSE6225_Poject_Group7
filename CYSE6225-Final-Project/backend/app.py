@@ -45,12 +45,6 @@ def create_app():
     # need credentialed CORS. (origins="*" + credentials is an invalid combo.)
     CORS(app, origins=Config.CORS_ORIGINS)
 
-    os.makedirs(Config.UPLOAD_DIR, exist_ok=True)
-
-    @app.get("/api/uploads/avatars/<path:filename>")
-    def serve_avatar(filename):
-        return send_from_directory(Config.UPLOAD_DIR, filename)
-
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(profile_bp, url_prefix="/api/profile")
     app.register_blueprint(videos_bp, url_prefix="/api/videos")
