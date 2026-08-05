@@ -4,31 +4,12 @@ Attributes: title, description, tags (SS/list), sources (list of {name,url}),
             thumbnail_url, click_count (N), rating_sum (N), rating_count (N)
 """
 import datetime
-import re
 
 from config import Config
 from extensions import dynamodb
 from utils.ids import new_id
 
 table = dynamodb.Table(Config.TABLE_VIDEOS)
-
-_YOUTUBE_ID_RE = re.compile(
-    r"(?:youtube\.com/watch\?v=|youtube\.com/embed/|youtu\.be/)([A-Za-z0-9_-]{11})"
-)
-
-
-def _derive_thumbnail(video: dict) -> str:
-    """Fall back to YouTube's hosted thumbnail (its own first/key frame image)
-    when no thumbnail_url was set manually. Other source types (e.g. Vimeo)
-    aren't covered -- their thumbnails require an API call, not just a URL
-    pattern -- so they keep falling through to the frontend's placeholder."""
-    if video.get("thumbnail_url"):
-        return video["thumbnail_url"]
-    for source in video.get("sources") or []:
-        match = _YOUTUBE_ID_RE.search(source.get("url", ""))
-        if match:
-            return f"https://img.youtube.com/vi/{match.group(1)}/hqdefault.jpg"
-    return ""
 
 
 def create_video(title, description, tags, sources, thumbnail_url=""):
@@ -66,41 +47,6 @@ def list_videos():
     return items
 
 
-def update_video(video_id: str, title=None, description=None, tags=None, sources=None, thumbnail_url=None):
-    """Admin edit. Fields left as None are unchanged. Expression attribute
-    names are used unconditionally (not just when needed) to sidestep
-    DynamoDB's reserved-word list entirely."""
-    fields = {
-        "title": title,
-        "description": description,
-        "tags": tags,
-        "sources": sources,
-        "thumbnail_url": thumbnail_url,
-    }
-    updates, names, values = [], {}, {}
-    for i, (field, value) in enumerate(fields.items()):
-        if value is not None:
-            placeholder = f"#f{i}"
-            updates.append(f"{placeholder} = :{field}")
-            names[placeholder] = field
-            values[f":{field}"] = value
-
-    if not updates:
-        return get_video(video_id)
-
-    table.update_item(
-        Key={"video_id": video_id},
-        UpdateExpression="SET " + ", ".join(updates),
-        ExpressionAttributeNames=names,
-        ExpressionAttributeValues=values,
-    )
-    return get_video(video_id)
-
-
-def delete_video(video_id: str):
-    table.delete_item(Key={"video_id": video_id})
-
-
 def increment_click_count(video_id: str) -> int:
     resp = table.update_item(
         Key={"video_id": video_id},
@@ -135,5 +81,4 @@ def with_avg_rating(video: dict) -> dict:
     video["click_count"] = int(video.get("click_count", 0))
     video["rating_sum"] = total
     video["rating_count"] = count
-    video["thumbnail_url"] = _derive_thumbnail(video)
     return video

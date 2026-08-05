@@ -1,18 +1,5 @@
 # EC2 Deployment Notes
 
-For the real deployment (ASG + ALB across 2 AZs, private-subnet app
-instances launched from a custom AMI), use the CloudFormation stacks in
-`../cfn/` -- see `../cfn/README.md`. The AMI itself is built by
-`build-ami.sh` (runs `build-provision.sh` on a temporary instance); real
-instances then run the much shorter `boot.sh` at launch to inject config
-and start the already-baked services. Nothing here needs to be run by hand
-in that path.
-
-The steps below are for standing up a **single instance manually** with
-`setup.sh` instead (installs everything at once, no separate build/boot
-split) -- e.g. to debug the app outside the ASG, or before the CFN/AMI
-pipeline existed.
-
 1. **Launch instance**: Ubuntu 22.04/24.04 LTS, t3.micro is enough for a
    class project. Attach an IAM role granting DynamoDB access (see
    `dynamodb-policy.json` for a minimal example policy).

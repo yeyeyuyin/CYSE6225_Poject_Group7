@@ -54,34 +54,6 @@ async function apiRequest(path, { method = "GET", body, auth = false } = {}) {
   return data;
 }
 
-// Separate from apiRequest because file uploads need multipart/form-data
-// (the browser sets the boundary itself); JSON.stringify + a fixed
-// Content-Type header would break the upload.
-async function apiUpload(path, formData) {
-  const headers = {};
-  const token = getToken();
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const resp = await fetch(`${API_BASE_URL}${path}`, {
-    method: "POST",
-    headers,
-    body: formData,
-  });
-
-  let data = null;
-  try {
-    data = await resp.json();
-  } catch (_) {
-    // no body
-  }
-
-  if (!resp.ok) {
-    const message = (data && data.error) || `Request failed (${resp.status})`;
-    throw new Error(message);
-  }
-  return data;
-}
-
 const Api = {
   // Auth
   register: (email, password, nickname) =>
@@ -91,13 +63,8 @@ const Api = {
 
   // Profile
   getMe: () => apiRequest("/profile/me", { auth: true }),
-  updateMe: (nickname) =>
-    apiRequest("/profile/me", { method: "PUT", auth: true, body: { nickname } }),
-  uploadAvatar: (file) => {
-    const fd = new FormData();
-    fd.append("avatar", file);
-    return apiUpload("/profile/me/avatar", fd);
-  },
+  updateMe: (nickname, avatar_url) =>
+    apiRequest("/profile/me", { method: "PUT", auth: true, body: { nickname, avatar_url } }),
   changePassword: (old_password, new_password) =>
     apiRequest("/profile/me/password", { method: "PUT", auth: true, body: { old_password, new_password } }),
 
@@ -132,15 +99,4 @@ const Api = {
   // Reports
   reportBrokenLink: (videoId, source_name, note) =>
     apiRequest(`/videos/${videoId}/report`, { method: "POST", auth: true, body: { source_name, note } }),
-
-  // Admin: video catalog management (backend enforces require_admin)
-  adminCreateVideo: (payload) => apiRequest("/videos", { method: "POST", auth: true, body: payload }),
-  adminUpdateVideo: (videoId, payload) => apiRequest(`/videos/${videoId}`, { method: "PUT", auth: true, body: payload }),
-  adminDeleteVideo: (videoId) => apiRequest(`/videos/${videoId}`, { method: "DELETE", auth: true }),
-
-  // Admin: broken-link reports
-  adminListReports: () => apiRequest("/videos/reports", { auth: true }),
-  adminUpdateReportStatus: (reportId, status) =>
-    apiRequest(`/videos/reports/${reportId}`, { method: "PUT", auth: true, body: { status } }),
-  adminDeleteReport: (reportId) => apiRequest(`/videos/reports/${reportId}`, { method: "DELETE", auth: true }),
 };

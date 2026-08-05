@@ -3,7 +3,7 @@ from flask import Blueprint, request, jsonify, g
 from models import video as video_model
 from models import favorite as favorite_model
 from models import history as history_model
-from utils.auth_helpers import optional_auth, require_admin
+from utils.auth_helpers import optional_auth, require_auth
 
 videos_bp = Blueprint("videos", __name__)
 
@@ -42,8 +42,11 @@ def get_video(video_id):
 
 
 @videos_bp.post("")
-@require_admin
+@require_auth
 def create_video():
+    """Admin/seed helper for adding catalog entries. Lock this down (or move
+    behind an admin role check) before shipping — it's wide open for now so
+    the team can seed data while building."""
     data = request.get_json(silent=True) or {}
     title = (data.get("title") or "").strip()
     if not title:
@@ -57,37 +60,6 @@ def create_video():
         thumbnail_url=data.get("thumbnail_url", ""),
     )
     return jsonify(video_model.with_avg_rating(v)), 201
-
-
-@videos_bp.put("/<video_id>")
-@require_admin
-def update_video(video_id):
-    if not video_model.get_video(video_id):
-        return jsonify({"error": "Video not found"}), 404
-
-    data = request.get_json(silent=True) or {}
-    title = data.get("title")
-    if title is not None and not title.strip():
-        return jsonify({"error": "title cannot be empty"}), 400
-
-    updated = video_model.update_video(
-        video_id,
-        title=title,
-        description=data.get("description"),
-        tags=data.get("tags"),
-        sources=data.get("sources"),
-        thumbnail_url=data.get("thumbnail_url"),
-    )
-    return jsonify(video_model.with_avg_rating(updated))
-
-
-@videos_bp.delete("/<video_id>")
-@require_admin
-def delete_video(video_id):
-    if not video_model.get_video(video_id):
-        return jsonify({"error": "Video not found"}), 404
-    video_model.delete_video(video_id)
-    return jsonify({"message": "Video deleted"})
 
 
 @videos_bp.post("/<video_id>/click")

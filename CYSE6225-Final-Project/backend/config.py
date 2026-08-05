@@ -23,11 +23,3 @@ class Config:
     TABLE_FAVORITES = f"{TABLE_PREFIX}Favorites"
     TABLE_HISTORY = f"{TABLE_PREFIX}History"
     TABLE_REPORTS = f"{TABLE_PREFIX}Reports"
-
-    # Avatar uploads: stored in S3, served through CloudFront (see
-    # utils/avatar_storage.py). AVATAR_CDN_BASE_URL is the distribution's
-    # domain, e.g. https://d111111abcdef8.cloudfront.net
-    AVATAR_BUCKET = os.getenv("AVATAR_BUCKET", "")
-    AVATAR_CDN_BASE_URL = os.getenv("AVATAR_CDN_BASE_URL", "")
-    MAX_AVATAR_BYTES = 2 * 1024 * 1024  # 2MB
-    MAX_CONTENT_LENGTH = 3 * 1024 * 1024  # Flask-level cap, rejects oversized requests with 413

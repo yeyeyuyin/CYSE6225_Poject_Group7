@@ -31,7 +31,7 @@ def seed_users():
         if user_model.get_user_by_email(u["email"]):
             print(f"[skip]   user {u['email']} already exists")
             continue
-        created = user_model.create_user(u["email"], u["password"], u.get("nickname", ""), u.get("role", "user"))
+        created = user_model.create_user(u["email"], u["password"], u.get("nickname", ""))
         # NOTE: create_user hashes the password, so these accounts can actually log in.
         print(f"[create] user {created['email']} ({created['user_id']})")
 

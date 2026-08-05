@@ -13,7 +13,7 @@ from utils.ids import new_id
 table = dynamodb.Table(Config.TABLE_USERS)
 
 
-def create_user(email: str, password: str, nickname: str, role: str = "user") -> dict:
+def create_user(email: str, password: str, nickname: str) -> dict:
     user_id = new_id()
     item = {
         "user_id": user_id,
@@ -21,7 +21,6 @@ def create_user(email: str, password: str, nickname: str, role: str = "user") ->
         "password_hash": generate_password_hash(password),
         "nickname": nickname or email.split("@")[0],
         "avatar_url": "",
-        "role": role,  # "user" | "admin"
         "created_at": datetime.datetime.utcnow().isoformat(),
     }
     table.put_item(Item=item, ConditionExpression="attribute_not_exists(user_id)")
@@ -60,14 +59,12 @@ def update_profile(user_id: str, nickname: str = None, avatar_url: str = None):
     if not updates:
         return get_user_by_id(user_id)
 
-    kwargs = {
-        "Key": {"user_id": user_id},
-        "UpdateExpression": "SET " + ", ".join(updates),
-        "ExpressionAttributeValues": values,
-    }
-    if names:
-        kwargs["ExpressionAttributeNames"] = names
-    table.update_item(**kwargs)
+    table.update_item(
+        Key={"user_id": user_id},
+        UpdateExpression="SET " + ", ".join(updates),
+        ExpressionAttributeNames=names or None,
+        ExpressionAttributeValues=values,
+    )
     return get_user_by_id(user_id)
 
 
@@ -86,5 +83,4 @@ def public_user(user: dict) -> dict:
         "email": user["email"],
         "nickname": user.get("nickname", ""),
         "avatar_url": user.get("avatar_url", ""),
-        "role": user.get("role", "user"),
     }

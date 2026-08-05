@@ -1,12 +1,10 @@
 // Profile page: edit nickname/avatar/password, watchlist, watch history.
 
-const DEFAULT_AVATAR = "https://placehold.co/96x96?text=%20";
-
 async function loadProfile() {
   try {
     const user = await Api.getMe();
     document.getElementById("nickname-input").value = user.nickname;
-    document.getElementById("avatar-preview").src = user.avatar_url || DEFAULT_AVATAR;
+    document.getElementById("avatar-input").value = user.avatar_url || "";
     document.getElementById("email-display").textContent = user.email;
   } catch (err) {
     window.location.href = "login.html";
@@ -62,19 +60,14 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("profile-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const nickname = document.getElementById("nickname-input").value;
-    const avatarFile = document.getElementById("avatar-input").files[0];
-    const messageEl = document.getElementById("profile-message");
+    const avatar_url = document.getElementById("avatar-input").value;
     try {
-      let updated = await Api.updateMe(nickname);
-      if (avatarFile) {
-        updated = await Api.uploadAvatar(avatarFile);
-      }
+      const updated = await Api.updateMe(nickname, avatar_url);
       setStoredUser(updated);
       renderAuthNav();
-      document.getElementById("avatar-preview").src = updated.avatar_url || DEFAULT_AVATAR;
-      messageEl.textContent = "Saved!";
+      document.getElementById("profile-message").textContent = "Saved!";
     } catch (err) {
-      messageEl.textContent = err.message;
+      document.getElementById("profile-message").textContent = err.message;
     }
   });
 
