@@ -6,14 +6,6 @@
 #
 # Usage:
 #   ./build-ami.sh <git-repo-url> <git-branch> <subnet-id> <security-group-id> [region]
-#
-# subnet-id/security-group-id: anything that gives the temp instance
-# outbound internet access -- e.g. the Network stack's PublicSubnet1Id +
-# AppSecurityGroupId (SSH not required; SSM does not need port 22 open).
-#
-# Re-run this after every code change you want reflected in the ASG; the
-# App stack's AmiId parameter then needs updating to the new AMI ID and
-# re-deploying (which triggers an Instance Refresh).
 set -euo pipefail
 
 GIT_REPO_URL="${1:?Usage: build-ami.sh <git-repo-url> <git-branch> <subnet-id> <security-group-id> [region]}"
@@ -24,7 +16,6 @@ REGION="${5:-us-east-1}"
 
 ROLE_NAME="webvideofinder-ami-builder"
 PROFILE_NAME="webvideofinder-ami-builder"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "==> Ensuring the builder IAM role/instance profile exists"
 if ! aws iam get-role --role-name "$ROLE_NAME" >/dev/null 2>&1; then
@@ -71,6 +62,7 @@ echo "==> Waiting for instance to be running"
 aws ec2 wait instance-running --instance-ids "$INSTANCE_ID" --region "$REGION"
 
 echo "==> Waiting for the SSM agent to check in (can take ~30-90s after boot)"
+STATUS="None"
 for _ in $(seq 1 24); do
   STATUS=$(aws ssm describe-instance-information \
     --filters "Key=InstanceIds,Values=$INSTANCE_ID" \
@@ -93,12 +85,32 @@ COMMAND_ID=$(aws ssm send-command \
   --query "Command.CommandId" --output text)
 
 echo "==> Waiting for provisioning to finish (command: $COMMAND_ID)"
-aws ssm wait command-executed --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --region "$REGION" || {
-  echo "Provisioning failed. Output:" >&2
+# Manual polling loop instead of `aws ssm wait command-executed`, because
+# the default waiter timeout is too short for apt-get + pip install on a
+# t3.micro -- this can legitimately take 3-8 minutes.
+CMD_STATUS="InProgress"
+for i in $(seq 1 60); do
+  CMD_STATUS=$(aws ssm get-command-invocation \
+    --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --region "$REGION" \
+    --query "Status" --output text 2>/dev/null || echo "Pending")
+  echo "    [$i/60] status: $CMD_STATUS"
+  case "$CMD_STATUS" in
+    Success) break ;;
+    Failed|Cancelled|TimedOut)
+      echo "Provisioning failed. Output:" >&2
+      aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --region "$REGION" \
+        --query "{Status:Status,StdOut:StandardOutputContent,StdErr:StandardErrorContent}" >&2
+      exit 1
+      ;;
+  esac
+  sleep 10
+done
+if [ "$CMD_STATUS" != "Success" ]; then
+  echo "Provisioning timed out after 10 minutes. Last status: $CMD_STATUS" >&2
   aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" --region "$REGION" \
     --query "{Status:Status,StdOut:StandardOutputContent,StdErr:StandardErrorContent}" >&2
   exit 1
-}
+fi
 
 echo "==> Creating AMI"
 AMI_NAME="webvideofinder-$(date -u +%Y%m%d%H%M%S)"
