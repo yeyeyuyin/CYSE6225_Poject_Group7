@@ -28,6 +28,11 @@ PORT=5001
 AVATAR_BUCKET=$AVATAR_BUCKET
 AVATAR_CDN_BASE_URL=$AVATAR_CDN_BASE_URL
 EOF
+# UserData runs as root, but the systemd unit runs the app as `ubuntu`
+# (see webvideofinder.service) -- without this chown, gunicorn can't even
+# read its own .env (PermissionError on load_dotenv()), crash-loops, and
+# nginx's proxy_pass gets connection-refused -> 502.
+chown ubuntu:ubuntu "$REPO_BACKEND/.env"
 chmod 600 "$REPO_BACKEND/.env"
 
 echo "==> Starting services"
